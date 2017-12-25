@@ -60,10 +60,11 @@ class Job:
         a = []
         soup=BeautifulSoup(cont,"html.parser")
         content=soup.find('div', class_='h1')
-        col1 = content.a.string.rstrip().lstrip()
-        a.append(col1)
-        col2 = content.span.string.rstrip().lstrip()
-        a.append(col2)
+        if(content != None):
+            col1 = content.a.string.rstrip().lstrip()
+            a.append(col1)
+            col2 = content.span.string.rstrip().lstrip()
+            a.append(col2)
         return a
 
     def SearchJob(self, cont):
