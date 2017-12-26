@@ -89,12 +89,4 @@ class Database:
             except Exception as e:
                 self._logger.warn("close database exception, %s,%s,%s" % (e, type(self._cursor), type(self._conn)))
 
-if __name__ == '__main__':
-    db = Database("blog","127.0.0.1","webuser","Webuser_192")
-    sql = "select * from user"
-    res = db.Query(sql)
-    if res:
-        for i in res:
-            print(i)
-    db.close()
 
