@@ -69,21 +69,6 @@ class Job:
 
     def SearchJob(self, cont):
         soup=BeautifulSoup(cont,"html.parser")
-        content=soup.find_all('div', class_='el')
-        for i in content:
-            res = i.find_all('a', target="_blank")
-            location = i.find_all('span', class_='t3')
-            salary = i.find_all('span', class_='t4')
-            for tt in res:
-                print(tt.get_text().rstrip().lstrip())
-            for ll in location:
-                print(ll.get_text().rstrip().lstrip())
-            for ss in salary:
-                print(ss.get_text())
-
-
-    def SearchJob(self, cont):
-        soup=BeautifulSoup(cont,"html.parser")
         content=soup.find_all('div', attrs={"class": "el"})
         b = {}
         j = 0
