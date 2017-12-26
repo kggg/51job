@@ -180,3 +180,5 @@ if __name__ == '__main__':
                 print("new job search result, %s" %r)
         else:
             pass
+    endtime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+    print("%s Done, bye!" %endtime)
