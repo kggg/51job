@@ -5,6 +5,7 @@ from bs4 import BeautifulSoup
 import sys, re, time
 import MySQLdb
 import database
+import cgi
 
 
 class Job:

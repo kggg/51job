@@ -133,7 +133,7 @@ if __name__ == '__main__':
     check = mydb.Query(sqluser)
     for row in check:
         password = row[3]
-        name = row[1]
+        name = row[2]
     begintime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
     print("%s Try to login 51job with user %s, wait ..." % (begintime, name))
     myjob = Job(name,password)
@@ -175,7 +175,7 @@ if __name__ == '__main__':
                 detail = myjob.GetHtml(value[1])
                 details = myjob.Jobinfo(detail)
                 sqld = "insert into jobdetail (position_id, pinfo, contact,companyinfo) values(%s, %s, %s,%s)"
-                vs = (res, details[0],details[1],details[2])
+                vs = (res, details[0]),details[1],details[2])
                 r = mydb.InsertDB(sqld, vs)
                 print("new job search result, %s" %r)
         else:
