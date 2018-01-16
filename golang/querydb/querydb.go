@@ -2,7 +2,7 @@ package querydb
 
 import (
 	"database/sql"
-	//"fmt"
+	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"log"
 )
@@ -17,6 +17,17 @@ func New(host string, user string, pass string, port string, dbname string) (*sq
 	db, err := sql.Open("mysql", user+":"+pass+"@tcp("+host+":"+port+")/"+dbname)
 	checkerr(err)
 	return db, err
+}
+
+//check the row whether exists or not
+func CheckExists(db *sql.DB, query string, args ...interface{}) bool {
+	var exists bool
+	query = fmt.Sprintf("SELECT exists (%s)", query)
+	err := db.QueryRow(query, args...).Scan(&exists)
+	if err != nil && err != sql.ErrNoRows {
+		log.Fatalf("error checking if row exists '%s' %v", args, err)
+	}
+	return exists
 }
 
 //fetch data from database
@@ -56,7 +67,7 @@ func FetchRows(db *sql.DB, sqlstr string, args ...interface{}) ([]map[string]str
 }
 
 // for data update and delete
-func exec(db *sql.DB, sqlstr string, args ...interface{}) (int64, error) {
+func ExecData(db *sql.DB, sqlstr string, args ...interface{}) (int64, error) {
 	stmtIns, err := db.Prepare(sqlstr)
 	checkerr(err)
 	defer stmtIns.Close()
@@ -67,7 +78,7 @@ func exec(db *sql.DB, sqlstr string, args ...interface{}) (int64, error) {
 }
 
 // for insert data to database
-func insert(db *sql.DB, sqlstr string, args ...interface{}) (int64, error) {
+func Insert(db *sql.DB, sqlstr string, args ...interface{}) (int64, error) {
 	stmtIns, err := db.Prepare(sqlstr)
 	checkerr(err)
 	defer stmtIns.Close()

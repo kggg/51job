@@ -56,7 +56,7 @@ func Login(lurl string, user string, pass string) *http.Client {
 func ParseApply(content io.Reader) [][]string {
 	doc, err := goquery.NewDocumentFromReader(content)
 	checkerr(err)
-	var position, company, address, salary []string
+	var position, company, address, salary, adate []string
 	var result [][]string
 	doc.Find("a.zhn").Each(func(i int, s *goquery.Selection) {
 		p := s.Text()
@@ -82,12 +82,18 @@ func ParseApply(content io.Reader) [][]string {
 		p = strings.TrimSpace(p)
 		salary = append(salary, p)
 	})
+	doc.Find("div.rq").Each(func(i int, s *goquery.Selection) {
+		p := s.Text()
+		p = ConvertToString(p, "gbk", "utf-8")
+		p = strings.TrimSpace(p)
+		adate = append(adate, p)
+	})
 	for j, v := range position {
 		if v == "" {
 			continue
 		}
 		var str []string
-		str = append(str, v, company[j], address[j], salary[j])
+		str = append(str, v, company[j], address[j], salary[j], adate[j])
 		result = append(result, str)
 	}
 	return result
@@ -156,7 +162,15 @@ func main() {
 	checkerr(err)
 	resapply := ParseApply(apply.Body)
 	for _, v := range resapply {
-		fmt.Println(v[0], v[1], v[2], v[3])
+		check := "select position,company from jobs where position=? and company=?"
+		exists := querydb.CheckExists(condb, check, v[0], v[1])
+		if exists {
+			continue
+		}
+		fmt.Println(v[0], v[1], v[2], v[3], v[4])
+		isql := "insert into jobs (username,position,company,location,salary,applydate) values(?, ?, ?, ?,?)"
+		_, err = querydb.Insert(condb, isql, user, v[0], v[1], v[2], v[3], v[4])
+		checkerr(err)
 	}
 	/*
 		surl := "http://search.51job.com/list/190200,000000,2603%252C0127%252C2509%252C2701%252C2504,00,0,06%252C07%252C08,%2B,1,1.html?lang=c&stype=1&postchannel=0000&workyear=99&cotype=99&degreefrom=99&jobterm=99&companysize=99&lonlat=0%2C0&radius=-1&ord_field=0&confirmdate=9&fromType=4&dibiaoid=0&address=&line=&specialarea=00&from=&welfare="
@@ -171,6 +185,14 @@ func main() {
 	checkerr(err)
 	whoseeme := WhoseeMe(seenme.Body)
 	for _, v := range whoseeme {
-		fmt.Println(v)
+		checksql := "select company,seentime from seenme where company=? and seentime=?"
+		exists := querydb.CheckExists(condb, checksql, v[0], v[1])
+		if exists {
+			continue
+		}
+		fmt.Println(v[0], v[1])
+		isql := "insert into seenme (username, company, seentime) values(?, ?, ?)"
+		_, err = querydb.Insert(condb, isql, user, v[0], v[1])
+		checkerr(err)
 	}
 }
