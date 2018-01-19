@@ -99,18 +99,27 @@ func ParseApply(content io.Reader) [][]string {
 	return result
 }
 
-func WhoseeMe(content io.Reader) []string {
+func WhoseeMe(content io.Reader) map[string]string {
 	doc, err := goquery.NewDocumentFromReader(content)
 	checkerr(err)
-	var who []string
+	who := make(map[string]string)
 	doc.Find("div.h1").Each(func(i int, s *goquery.Selection) {
 		company := s.Find("a").Text()
-		sdate := s.Find("span").Text()
+		var dd []string
+		s.Find("span").Each(func(i int, ss *goquery.Selection) {
+			date := ss.Eq(0).Text()
+			date = strings.TrimSpace(date)
+			dtime := ss.Eq(1).Text()
+			dtime = strings.TrimSpace(dtime)
+			dd = append(dd, date)
+			dd = append(dd, dtime)
+		})
+		sdate := strings.Join(dd, " ")
 		company = ConvertToString(company, "gbk", "utf-8")
 		sdate = ConvertToString(sdate, "gbk", "utf-8")
-		company = strings.TrimSpace(company)
 		sdate = strings.TrimSpace(sdate)
-		who = append(who, company, sdate)
+		company = strings.TrimSpace(company)
+		who[company] = sdate
 	})
 	return who
 }
@@ -184,15 +193,16 @@ func main() {
 	seenme, err := cli.Get("https://i.51job.com/userset/resume_browsed.php?lang=c")
 	checkerr(err)
 	whoseeme := WhoseeMe(seenme.Body)
-	for _, v := range whoseeme {
+	for k, v := range whoseeme {
 		checksql := "select company,seentime from seenme where company=? and seentime=?"
-		exists := querydb.CheckExists(condb, checksql, v[0], v[1])
+		exists := querydb.CheckExists(condb, checksql, k, v)
+		fmt.Println(exists)
 		if exists {
 			continue
 		}
-		fmt.Println(v[0], v[1])
+		fmt.Println(k, v)
 		isql := "insert into seenme (username, company, seentime) values(?, ?, ?)"
-		_, err = querydb.Insert(condb, isql, user, v[0], v[1])
+		_, err = querydb.Insert(condb, isql, user, k, v)
 		checkerr(err)
 	}
 }
