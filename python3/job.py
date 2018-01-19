@@ -3,7 +3,6 @@
 import requests
 from bs4 import BeautifulSoup
 import sys, re, time
-#import pymysql
 import database
 
 class Job:
@@ -12,11 +11,13 @@ class Job:
         self._login_data = {'lang':'c', 'action':'save','from_domain':'i','loginname': user, 'password': dbpass,'verifycodechked':'0'}
         self._dbcharset = 'utf8'
         self._ua = 'Mozilla/5.0 (Windows NT 6.3; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'
-        self._headers =  {"User-Agent": self._ua, "Referer": "http://www.51job.com"}
+        self._headers =  {"User-Agent": self._ua}
         self._session = self.Login()
 
     def Login(self):
         s = requests.Session()
+        self._headers['Content-Type'] =  'application/x-www-form-urlencoded'
+        self._headers['Referer'] =  'https://login.51job.com/login.php?lang=c'
         res=s.post(self._loginurl,data=self._login_data, headers=self._headers)
         return s
 
@@ -26,7 +27,7 @@ class Job:
         f.decoding='utf-8'
         return f.text
 
-    def GetJob(self,cont):
+    def JobApply(self,cont):
         b = []
         soup=BeautifulSoup(cont,"html.parser")
         position=soup.find_all('a', class_='zhn')
@@ -38,7 +39,7 @@ class Job:
         for each in position:
             a = []
             if salary[i].string == None:
-                salary[i].string = u"0/月"
+                salary[i].string = "0/月"
             col1 = each.get("title").rstrip().lstrip()
             a.append(col1)
             col2 = company[i].get("title").rstrip().lstrip()
@@ -62,8 +63,13 @@ class Job:
         if(content != None):
             col1 = content.a.string.rstrip().lstrip()
             a.append(col1)
-            col2 = content.span.string.rstrip().lstrip()
-            a.append(col2)
+            col2 = content.span
+            col3 = col2.next_sibling.next_sibling
+            b = []
+            b.append(col2.string.rstrip().lstrip())
+            b.append(col3.string.rstrip().lstrip())
+            ss = ' '.join(b)
+            a.append(ss)
         return a    
    
     def SearchJob(self, cont):
@@ -108,8 +114,6 @@ class Job:
         addr = soup.find_all('div',attrs={"class": "bmsg inbox"})
         for i in addr:
             r = i.find('p',class_='fp')
-            #for j in r:
-            #    j.find('span', class_='label').decompose()
             if(r != None):
                 a.append(r.get_text())
         company = soup.find('div',attrs={"class": "tmsg inbox"}).get_text()
@@ -138,7 +142,7 @@ if __name__ == '__main__':
     print("%s Try to login 51job with user %s, wait ..." % (begintime, name))
     myjob = Job(name,password)
     content = myjob.GetHtml(url2)
-    job = myjob.GetJob(content)
+    job = myjob.JobApply(content)
     sqli = "select id,position,company,applydate from jobs where position=%s and company=%s order by id desc limit 1"
     for jj in job:
         res = mydb.CheckDB(sqli, jj[0],jj[1])
@@ -152,6 +156,7 @@ if __name__ == '__main__':
     who = myjob.GetHtml(url3)
     seen = myjob.WhoSeeMe(who)
     if len(seen) != 0:
+        print(seen[0], seen[1])
         sqln = "select id,company,seentime from seenme where company=%s and seentime=%s order by id desc limit 1"
         see = mydb.CheckDB(sqln, seen[0], seen[1])
         if not see:
@@ -161,24 +166,31 @@ if __name__ == '__main__':
             print("seenme insertid %s" %r)
         else:
             pass    
-
-    s = myjob.GetHtml(url4)
-    search = myjob.SearchJob(s)
-    sqls = "select id,position,company from searchjob where position=%s and company=%s order by id desc limit 1"
-    for key, value in search.items():    
-        check = mydb.CheckDB(sqls, value[0], value[2])
-        if not check:
-            sqli = "insert into searchjob (username, position,company,location,salary) values(%s, %s,%s,%s,%s)"
-            v = (username, value[0],value[2],value[3],value[4])
-            res = mydb.InsertDB(sqli, v)
-            if res:
-                detail = myjob.GetHtml(value[1])
-                details = myjob.Jobinfo(detail)
-                sqld = "insert into jobdetail (position_id, pinfo, contact,companyinfo) values(%s, %s, %s,%s)"
-                vs = (res, details[0]),details[1],details[2])
-                r = mydb.InsertDB(sqld, vs)
-                print("new job search result, %s" %r)
-        else:
-            pass
+    if username == 'steven.lu':
+        s = myjob.GetHtml(url4)
+        search = myjob.SearchJob(s)
+        sqls = "select id,position,company from searchjob where position=%s and company=%s order by id desc limit 1"
+        for key, value in search.items():    
+            check = mydb.CheckDB(sqls, value[0], value[2])
+            if not check:
+                sqli = "insert into searchjob (username, position,company,location,salary) values(%s, %s,%s,%s,%s)"
+                v = (username, value[0],value[2],value[3],value[4])
+                res = mydb.InsertDB(sqli, v)
+                if res:
+                    detail = myjob.GetHtml(value[1])
+                    details = myjob.Jobinfo(detail)
+                    if len(details) > 0:
+                        sqld = "insert into jobdetail (position_id, pinfo, contact,companyinfo) values(%s, %s, %s,%s)"
+                        vs = (res, details[0],details[1],details[2])
+                        r = mydb.InsertDB(sqld, vs)
+                        if r:
+                            print("new job detail result, %s" %r)
+                        else:
+                            pass
+                    else:
+                        pass
+            else:
+                pass
+    mydb.close()        
     endtime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
     print("%s Done, bye!" %endtime)
