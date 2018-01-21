@@ -14,7 +14,8 @@ func checkerr(err error) {
 }
 
 func New(host string, user string, pass string, port string, dbname string) (*sql.DB, error) {
-	db, err := sql.Open("mysql", user+":"+pass+"@tcp("+host+":"+port+")/"+dbname)
+	con := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", user, pass, host, port, dbname)
+	db, err := sql.Open("mysql", con)
 	checkerr(err)
 	return db, err
 }
